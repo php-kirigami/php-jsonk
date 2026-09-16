@@ -930,6 +930,30 @@ below before trusting any of it.
       confirmation is the next `php-wasm-compiler` build actually compiling
       `simdjson.cpp`/`jsonk_decode.cpp` clean, still in progress as of this
       writing.
+    - **Correction, same session**: that first `-msimd128`-only attempt
+      was insufficient, confirmed by an actual `php-wasm-compiler` build —
+      it only satisfied `emmintrin.h`'s own `__SSE__` guard, then hit
+      `<x86intrin.h>`'s further sub-includes (`ia32intrin.h`, AMD-only
+      `ammintrin.h`) needing real x86 CPUID/RDTSC/SSE4a builtins with no
+      wasm translation at all, confirmed by directly testing `em++
+      -msimd128 -msse4.2 -include x86intrin.h` in a throwaway container.
+      Real fix: disable simdjson's x86-specific implementations outright
+      (`SIMDJSON_IMPLEMENTATION_ICELAKE/HASWELL/WESTMERE=0`, forcing
+      `SIMDJSON_BUILTIN_IMPLEMENTATION` to resolve to the portable
+      `fallback` on its own) plus `SIMDJSON_EXPERIMENTAL_HAS_SSE2=0`
+      (`simdjson.h`'s own separate, `#ifndef`-guarded SSE2 code path).
+      Verified directly: a standalone `em++ -c simdjson.cpp`/`#include
+      <simdjson.h>` test with just these four defines compiles clean.
+      **One remaining piece needed patching simdjson.cpp itself** (not
+      overridable via any -D, since `detect_supported_architectures()`'s
+      x86 branch is gated by a raw, unguarded `#elif defined(__x86_64__)`
+      that re-`#define`s `SIMDJSON_IS_X86_64 1` regardless of any prior
+      command-line value) — real x86 `cpuid`/`xgetbv` inline asm, genuinely
+      impossible under Emscripten. Since this repo doesn't vendor
+      simdjson.cpp itself (`php-wasm-compiler` downloads it directly), that
+      one-line patch (adding `&& !defined(__EMSCRIPTEN__)`) lives in
+      `php-wasm-compiler`'s own `patches/simdjson/` instead — see that
+      repo's CLAUDE.md for the full writeup. Version bumped to `0.1.2`.
 
 ## Status (2026-09-16)
 
