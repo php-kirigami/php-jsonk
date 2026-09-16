@@ -843,6 +843,94 @@ below before trusting any of it.
       `JSON_INVALID_UTF8_IGNORE`/`_SUBSTITUTE` -- none implemented yet,
       not touched this session.
 
+20. **`config.m4`'s `vendor/simdjson/simdjson.h`/`vendor/yyjson/yyjson.h`
+    existence check (and its `PHP_ADD_INCLUDE`/`PHP_NEW_EXTENSION` source
+    paths) are relative to the wrong directory when jsonk is built
+    statically inside a full `php-src` tree, not standalone via `phpize`
+    (found in `php-wasm-compiler`, 2026-09-16, not fixed here yet --
+    documentation only, per the user's explicit ask: "documente le truc
+    dans son repo").**
+    - **Root cause**: `config.m4`'s body (`if test ! -f
+      "vendor/simdjson/simdjson.h"; then AC_MSG_ERROR(...); fi`, decision
+      11) is a bare shell path, correct for this repo's own documented
+      native build (`vendor/build/stage.sh` then `phpize && ./configure
+      --enable-jsonk` -- run *from `php-jsonk`'s own directory*, which is
+      also the generated `configure` script's cwd, so the relative path
+      resolves against `vendor/simdjson/simdjson.h` right there). But
+      `php-wasm-compiler` builds PHP statically by dropping `ext/jsonk`'s
+      whole source tree into a full `php-src` checkout and running ONE
+      `./configure` generated for the *entire tree*, from `php-src`'s own
+      root -- so at the point config.m4's inlined shell body actually
+      executes, cwd is `php-src/`, not `php-src/ext/jsonk/`, and the same
+      bare relative path resolves to `php-src/vendor/simdjson/simdjson.h`
+      instead. `php-wasm-compiler` had faithfully vendored the files at
+      `ext/jsonk/vendor/simdjson/` (mirroring this repo's own
+      `vendor/build/stage.sh` layout) and hit `configure: error: simdjson
+      not found at vendor/simdjson/simdjson.h -- run vendor/build/stage.sh
+      first` as a result -- a real build failure, not a hypothetical.
+    - **Workaround actually shipped, in `php-wasm-compiler` only**: after
+      fetching `ext/jsonk/vendor/{simdjson,yyjson}/`, it also copies both
+      directories to `php-src/vendor/{simdjson,yyjson}/` (the full-tree
+      build root), satisfying the guard check from whichever cwd it
+      actually runs at. See `php-wasm-compiler`'s `compile/php/Dockerfile`
+      (the jsonk fetch block) and its own `CLAUDE.md` decision 43 for the
+      full writeup on that side. Untested here: whether
+      `PHP_ADD_INCLUDE([vendor/simdjson])` and `PHP_NEW_EXTENSION`'s
+      `vendor/simdjson/simdjson.cpp vendor/yyjson/yyjson.c` source
+      arguments would have hit the *same* wrong-cwd problem for the actual
+      compile step (not just the guard) had the workaround only fixed the
+      header check -- copying both full directories (not just the two
+      `.h` files) sidesteps needing to know for sure.
+    - **Not fixed here**: the honest, root-cause fix would be for
+      `config.m4` to resolve these three references against `$ext_srcdir`
+      (the standard PHP build variable holding this extension's own
+      source directory, correct regardless of whether the extension is
+      built standalone or as part of a bigger tree) instead of a bare
+      relative path -- e.g. `test -f "$ext_srcdir/vendor/simdjson/
+      simdjson.h"`, `PHP_ADD_INCLUDE([$ext_srcdir/vendor/simdjson])`, and
+      prefixing the two vendored source files in the `PHP_NEW_EXTENSION`
+      call the same way. That would make `php-wasm-compiler`'s
+      root-directory-copy workaround unnecessary, but changes this
+      extension's own native build contract (untested since decision
+      17's build) -- left as a follow-up, not attempted in this pass.
+
+21. **Real fix, this time in `config.m4` itself: simdjson needs
+    `-msimd128` under Emscripten, or its own architecture detection reaches
+    real x86 SSE intrinsics that don't exist there (found in
+    `php-wasm-compiler`, 2026-09-16, fixed here per the user's explicit
+    "va modifier le source directement... et commit/tag").**
+    - **Symptom**: `php-wasm-compiler`'s build (with decision 20's vendor-
+      path fix applied) got past `./configure` and into actually compiling
+      `jsonk_decode.cpp`/`vendor/simdjson/simdjson.cpp`, then failed:
+      `.../compat/emmintrin.h:11: error: "SSE2 instruction set not
+      enabled"` and the same for `xmmintrin.h`'s SSE guard.
+    - **Root cause**: simdjson.h's own preprocessor architecture detection
+      sees `__x86_64__` -- defined pipeline-wide by `php-wasm-compiler`
+      purely to make `zend_long` 64-bit under Emscripten (a real x86_64
+      macro being repurposed for an unrelated ABI reason, not a claim the
+      target is real x86 hardware) -- and picks a genuine x86 SIMD backend,
+      pulling in `<emmintrin.h>`/`<xmmintrin.h>`. Emscripten ships compat
+      shims for exactly these headers (translating SSE-family intrinsics to
+      real wasm SIMD128 instructions), but they guard themselves behind
+      `__SSE__`/`__SSE2__` (confirmed by reading Emscripten's own
+      `compat/xmmintrin.h` from inside a throwaway container built from
+      `php-wasm-compiler`'s own base image: `#ifndef __SSE__ #error ...`),
+      which clang only predefines once `-msimd128` is passed on the command
+      line -- never implied by `-D__x86_64__` alone.
+    - **Fix**: `config.m4` now appends `-msimd128` to `CXXFLAGS`, but only
+      when `$CXX` matches `*em++*` (a `case` guard) -- the flag is
+      Emscripten-specific and would be a hard error on a native, non-Wasm
+      build, so it must not leak into this extension's own primary native
+      PECL build target (decision 3).
+    - **Not verified end-to-end yet**: no native build was re-run this
+      session to confirm the `case $CXX in *em++*)` guard doesn't
+      misbehave (e.g. if some native `$CXX` value could ever coincidentally
+      contain the substring `em++` -- considered and dismissed as
+      practically impossible, but genuinely unverified); the real
+      confirmation is the next `php-wasm-compiler` build actually compiling
+      `simdjson.cpp`/`jsonk_decode.cpp` clean, still in progress as of this
+      writing.
+
 ## Status (2026-09-16)
 
 **✅ Builds, loads, and passes a real functional test suite (2026-09-16,

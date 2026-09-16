@@ -202,6 +202,19 @@ make
 `vendor/` is gitignored and rebuilt from source every time. There is no
 Emscripten/WASM build yet.
 
+**Statically linking into a full `php-src` tree** (rather than building
+standalone via `phpize`, e.g. `php-wasm-compiler`'s static build): drop
+this extension's source into `ext/jsonk/` as usual, but also stage a copy
+of the vendored `vendor/simdjson/` and `vendor/yyjson/` directories at the
+**root** of that `php-src` checkout. `config.m4`'s own existence check and
+source paths are relative, which resolves correctly against `ext/jsonk/`
+for the standalone build above (its own cwd when `configure` runs) but
+resolves against the whole tree's root when `configure` is the one
+generated for all of `php-src` at once. See
+[php-wasm-compiler](https://github.com/php-kirigami/php-wasm-compiler)'s
+`compile/php/Dockerfile` for a working example, and this repo's
+[CLAUDE.md](CLAUDE.md) (decision 20) for the full diagnosis.
+
 ---
 
 ## Requirements

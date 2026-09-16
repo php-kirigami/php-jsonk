@@ -42,6 +42,22 @@ if test "$PHP_JSONK" != "no"; then
   PHP_SUBST(JSONK_SHARED_LIBADD)
   CXXFLAGS="$CXXFLAGS -std=c++17"
 
+  dnl Under Emscripten, simdjson.h's own architecture detection sees
+  dnl whatever __x86_64__-style macro the *consuming build* forces (e.g.
+  dnl php-wasm-compiler's pipeline-wide -D__x86_64__, used purely to make
+  dnl zend_long 64-bit -- see php-wasm-compiler's CLAUDE.md "64 bit long
+  dnl support" section) and picks a real x86 SIMD backend, #include-ing
+  dnl <emmintrin.h>/<xmmintrin.h>. Emscripten ships compat shims for those
+  dnl (translating SSE-family intrinsics to real wasm SIMD128), but they
+  dnl guard themselves behind __SSE__/__SSE2__, which clang only predefines
+  dnl once -msimd128 is passed -- without it, a real "SSE2 instruction set
+  dnl not enabled" #error, found via a real php-wasm-compiler build.
+  dnl -msimd128 is meaningless (and would error) on a native, non-Emscripten
+  dnl build, so it's only added when $CXX is actually em++.
+  case $CXX in
+    *em++*) CXXFLAGS="$CXXFLAGS -msimd128" ;;
+  esac
+
   PHP_NEW_EXTENSION(jsonk,
     jsonk.c jsonk_error.c jsonk_schema.c jsonk_regex.c jsonk_format.c jsonk_fetch.c jsonk_encode.c jsonk_decode.cpp \
     vendor/simdjson/simdjson.cpp vendor/yyjson/yyjson.c,
