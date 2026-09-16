@@ -1,0 +1,47 @@
+# phpize / autoconf build artifacts
+/autom4te.cache/
+/build/
+/.deps/
+/.libs/
+/modules/
+/config.guess
+/config.h
+/config.h.in
+/config.log
+/config.nice
+/config.status
+/config.sub
+/configure
+/configure.ac
+/libtool
+/ltmain.sh
+/Makefile
+/Makefile.fragments
+/Makefile.global
+/Makefile.objects
+/mkinstalldirs
+/run-tests.php
+*.lo
+*.o
+*.so
+*.la
+*.dep
+
+# simdjson/yyjson sources, downloaded fresh by vendor/build/stage.sh at the
+# version pinned in matrix.json -- never hand-edited, never committed.
+/vendor/simdjson/
+/vendor/yyjson/
+
+# scratch test scripts used during development, not part of the repo
+/vendor/build/test*.php
+/vendor/build/*-test.php
+
+# Node dev tooling (scripts/update-versions.mjs has no dependencies, but
+# keep this future-proof)
+/node_modules/
+
+# editor/OS noise
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

@@ -1,0 +1,13 @@
+{
+	"name": "php-jsonk-dev-tools",
+	"private": true,
+	"type": "module",
+	"description": "Dev tooling for php-jsonk (matrix.json version checker). The extension itself is PHP/C, not npm-published.",
+	"engines": {
+		"node": ">=18"
+	},
+	"scripts": {
+		"update-versions": "node scripts/update-versions.mjs",
+		"update-versions:write": "node scripts/update-versions.mjs --write"
+	}
+}

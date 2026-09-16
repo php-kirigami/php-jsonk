@@ -1,0 +1,24 @@
+// vim:ft=javascript
+
+ARG_ENABLE("jsonk", "Enable jsonk support (fast JSON encode/decode with JSON Schema validation, built on simdjson + yyjson)", "no");
+
+if (PHP_JSONK != "no") {
+	if (CHECK_HEADER_ADD_INCLUDE("simdjson.h", "CFLAGS_JSONK", "vendor/simdjson") &&
+		CHECK_HEADER_ADD_INCLUDE("yyjson.h", "CFLAGS_JSONK", "vendor/yyjson")) {
+
+		EXTENSION("jsonk", "jsonk.c jsonk_error.c jsonk_schema.c jsonk_regex.c jsonk_format.c jsonk_fetch.c jsonk_encode.c jsonk_decode.cpp", PHP_JSONK_SHARED);
+		ADD_SOURCES("vendor/simdjson", "simdjson.cpp", "jsonk");
+		ADD_SOURCES("vendor/yyjson", "yyjson.c", "jsonk");
+
+		AC_DEFINE('HAVE_JSONK', 1, 'Whether you have jsonk');
+
+		// simdjson (v4.x) requires C++17; /EHsc enables the C++ exception
+		// model MSVC needs for any translation unit touching the C++
+		// standard library, even though jsonk_decode.cpp itself only uses
+		// simdjson's error-code (non-throwing) API -- same flags ext/intl
+		// (also a C++ library wrapped for PHP) uses, for the same reason.
+		ADD_FLAG("CFLAGS_JSONK", "/std:c++17 /EHsc");
+	} else {
+		WARNING("jsonk not enabled; simdjson/yyjson not found under vendor/ -- run vendor/build/stage.sh first (requires a POSIX shell: Git Bash or WSL)");
+	}
+}

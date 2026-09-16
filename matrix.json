@@ -1,0 +1,27 @@
+{
+	"lastChecked": null,
+	"libraries": {
+		"simdjson": {
+			"sourceType": "github-release",
+			"repo": "simdjson/simdjson",
+			"note": "Singleheader amalgamation (simdjson.cpp + simdjson.h), fetched directly as release assets -- no build step, compiled straight into the extension. Used for decode only (DOM API); simdjson has no JSON-writing API.",
+			"assets": {
+				"simdjson.h": "https://github.com/{repo}/releases/download/{tag}/simdjson.h",
+				"simdjson.cpp": "https://github.com/{repo}/releases/download/{tag}/simdjson.cpp"
+			},
+			"tagPrefix": "v",
+			"versions": ["4.6.11"]
+		},
+		"yyjson": {
+			"sourceType": "github-tag",
+			"repo": "ibireme/yyjson",
+			"note": "Already a single .c/.h pair at the repo root (src/yyjson.c, src/yyjson.h) -- no amalgamation needed, fetched directly from the tagged ref. Used for encode (writer API) and for reading $schema documents (schema is always small, no need for simdjson's speed there).",
+			"assets": {
+				"yyjson.h": "https://raw.githubusercontent.com/{repo}/{tag}/src/yyjson.h",
+				"yyjson.c": "https://raw.githubusercontent.com/{repo}/{tag}/src/yyjson.c"
+			},
+			"tagPrefix": "",
+			"versions": ["0.13.0"]
+		}
+	}
+}
