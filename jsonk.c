@@ -594,18 +594,6 @@ PHP_RSHUTDOWN_FUNCTION(jsonk)
 PHP_MINFO_FUNCTION(jsonk)
 {
 	php_info_print_table_start();
-	/* php_info_print_table_row()/_header() don't escape their arguments,
-	 * so a raw <img> row works here too -- same Kirigami logo used as the
-	 * README header, kept as a hosted URL rather than a base64 blob to
-	 * avoid bloating this binary. Plain <img> also survives an
-	 * HTML->Markdown conversion of phpinfo()'s output cleanly (renders as
-	 * `![...](url)`), unlike inline <svg> markup, which not every such
-	 * converter preserves. */
-	php_printf(
-		"<tr><td colspan=\"2\" style=\"text-align: center\">"
-		"<img src=\"https://zmotrin.github.io/assets/kirigami/kirigami-logo-universal.svg\" "
-		"alt=\"Kirigami\" height=\"40\" /></td></tr>\n"
-	);
 	php_info_print_table_header(2, "jsonk support", "enabled");
 	php_info_print_table_row(2, "version", PHP_JSONK_VERSION);
 	/* pcre is a hard module dependency (jsonk can't even load without it,
@@ -620,6 +608,19 @@ PHP_MINFO_FUNCTION(jsonk)
 		jsonk_apcu_available() ? "enabled, used as the fetch cache" : "not active -- using the built-in process-local fallback cache");
 	php_info_print_table_row(2, "json_encode()/json_decode() replacement",
 		JSONK_G(replace_json_functions) ? "enabled -- native json_encode()/json_decode() are jsonk-backed" : "disabled -- native json_encode()/json_decode() are unmodified");
+	/* php_info_print_table_row()/_header() don't escape their arguments,
+	 * so a raw two-cell footer row works here too -- same Kirigami logo
+	 * used as the README header, kept as a hosted URL rather than a
+	 * base64 blob to avoid bloating this binary. Plain <img> also
+	 * survives an HTML->Markdown conversion of phpinfo()'s output cleanly
+	 * (renders as `![...](url)`), unlike inline <svg> markup, which not
+	 * every such converter preserves. */
+	php_printf(
+		"<tr><td style=\"text-align: left\">Part of the Kirigami PHP extension family</td>"
+		"<td style=\"text-align: right\">"
+		"<img src=\"https://zmotrin.github.io/assets/kirigami/kirigami-logo-universal.svg\" "
+		"alt=\"Kirigami\" height=\"28\" /></td></tr>\n"
+	);
 	php_info_print_table_end();
 	DISPLAY_INI_ENTRIES();
 }
