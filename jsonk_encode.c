@@ -82,7 +82,7 @@ static bool build_object(yyjson_mut_doc *doc, zval *value, zend_long flags, zend
 
 	/* Public properties only, same default ext/json uses for a plain
 	 * object with no JsonSerializable -- which jsonk doesn't implement in
-	 * v1, see CLAUDE.md. */
+	 * v1, see docs/DECISIONS.md. */
 	props = Z_OBJPROP_P(value);
 	*out = yyjson_mut_obj(doc);
 	if (!*out) {
@@ -238,7 +238,7 @@ zend_string *jsonk_encode_impl(zval *value, jsonk_schema_node *schema, zend_long
 	yyjson_mut_doc_set_root(doc, root);
 
 	/* PHP escapes slashes and non-ASCII by default; yyjson's defaults are
-	 * the opposite (see CLAUDE.md), so the JSON_UNESCAPED_* flags being
+	 * the opposite (see docs/DECISIONS.md), so the JSON_UNESCAPED_* flags being
 	 * ABSENT is what turns escaping ON here. */
 	if (!(flags & PHP_JSON_UNESCAPED_SLASHES))  write_flags |= YYJSON_WRITE_ESCAPE_SLASHES;
 	if (!(flags & PHP_JSON_UNESCAPED_UNICODE))  write_flags |= YYJSON_WRITE_ESCAPE_UNICODE;

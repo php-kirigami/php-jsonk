@@ -14,10 +14,10 @@ extern "C" {
  * fetch: "$ref" only resolves same-document JSON Pointers, see
  * jsonk_schema_compile()). A schema is compiled once per
  * jsonk_decode()/jsonk_encode()/jsonk_validate() call (no caching/reuse
- * across calls yet -- see CLAUDE.md "Not done yet") from the raw
+ * across calls yet -- see docs/TODO.md) from the raw
  * `$schema` argument, parsed via yyjson's read API, then walked against
  * either a zval tree (encode, and decode's post-build validation pass --
- * see CLAUDE.md's "two passes, not fused" decision).
+ * see docs/DECISIONS.md's "two passes, not fused" decision).
  * ======================================================================== */
 
 typedef struct jsonk_schema_node jsonk_schema_node;
@@ -166,7 +166,7 @@ void jsonk_schema_free(jsonk_schema_node *node);
  * Used by BOTH jsonk_encode() (validating the input PHP value before
  * serializing it) and jsonk_decode() (validating the zval tree
  * jsonk_decode_impl() already built from the simdjson DOM, as a second
- * pass -- see CLAUDE.md "Decode/encode + schema: two passes, not fused
+ * pass -- see docs/DECISIONS.md "Decode/encode + schema: two passes, not fused
  * (v1)" for why decode doesn't have its own DOM-walking validator). One
  * validator implementation instead of two keeps schema semantics from
  * drifting between encode and decode. */

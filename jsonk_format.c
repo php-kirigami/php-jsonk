@@ -3,7 +3,7 @@
  * ones real-world schemas actually use. These are deliberately pragmatic,
  * structural checks (not exhaustive RFC-grammar parsers): good enough to
  * catch genuinely malformed values without becoming their own maintenance
- * burden. See CLAUDE.md for exactly what's simplified in each case. */
+ * burden. See docs/DECISIONS.md for exactly what's simplified in each case. */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

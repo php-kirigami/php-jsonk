@@ -28,7 +28,7 @@ typedef struct {
  * default for PHP-FPM and the CLI) this is a plain process-wide C global
  * and correctly persists across requests handled by the same worker. Not
  * thread-safe: no lock guards access, so a ZTS build (a threaded SAPI)
- * could race on it. Accepted for v1 -- see CLAUDE.md. */
+ * could race on it. Accepted for v1 -- see docs/DECISIONS.md. */
 static HashTable jsonk_fetch_cache;
 static bool jsonk_fetch_cache_ready = false;
 
@@ -77,7 +77,7 @@ static bool call_php_func(const char *name, zval *retval, uint32_t argc, zval *a
 /* APCu (when loaded AND actually active -- see apcu_enabled() below) is
  * preferred over jsonk's own process-global HashTable cache: real shared
  * memory with its own TTL handling, and -- unlike the hand-rolled
- * fallback -- safe under a threaded/ZTS SAPI (see CLAUDE.md). ext/curl's
+ * fallback -- safe under a threaded/ZTS SAPI (see docs/DECISIONS.md). ext/curl's
  * module-dependency treatment applies here too: this is a nice-to-have,
  * not required, so no zend_module_dep entry -- just a runtime check.
  * apcu_enabled() specifically (not just "is the module loaded") matters
@@ -243,7 +243,7 @@ static zend_string *do_fetch(const char *url, size_t url_len)
 		 * door on curl itself ever following a redirect (CURLOPT_
 		 * FOLLOWLOCATION, above) into a non-http(s) scheme such as
 		 * file:// -- a real local-file-read risk otherwise, since
-		 * external "$ref" is active by default (see CLAUDE.md). */
+		 * external "$ref" is active by default (see docs/DECISIONS.md). */
 		zval *http_proto = zend_get_constant_str(ZEND_STRL("CURLPROTO_HTTP"));
 		zval *https_proto = zend_get_constant_str(ZEND_STRL("CURLPROTO_HTTPS"));
 		if (http_proto && https_proto) {

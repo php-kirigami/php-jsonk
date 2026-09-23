@@ -74,7 +74,7 @@ Part of the **Kirigami** project ecosystem.
 Builds natively and under Emscripten, and ships statically in
 [`@kirigami/php-wasm`](https://github.com/php-kirigami/kirigami/tree/main/packages/php-wasm),
 where php-prepros' `SCHEMA` class validates through it. There is no
-`.phpt` test suite yet. See [CLAUDE.md](CLAUDE.md)'s "Status" section and
+`.phpt` test suite yet. See [docs/STATUS.md](docs/STATUS.md) and
 decisions for what has been verified and how.
 
 **0.1.5**: `enum`, `const` and `uniqueItems` now compare JSON objects by
@@ -104,7 +104,7 @@ throws `JsonkException` with `JSON_THROW_ON_ERROR`) and
 
 Reuses PHP's own `JSON_*` constants for `$flags` --
 `JSON_OBJECT_AS_ARRAY`, `JSON_BIGINT_AS_STRING`, `JSON_THROW_ON_ERROR` are
-recognized (see [CLAUDE.md](CLAUDE.md) decision 5 for the full list of
+recognized (see [docs/DECISIONS.md](docs/DECISIONS.md) decision 5 for the full list of
 what's wired up vs. not yet).
 
 ### `jsonk_encode()`
@@ -130,7 +130,7 @@ jsonk_validate(string $json, string $schema, int $depth = 512): bool
 ```
 
 Decodes and validates without keeping the result -- a convenience
-shorthand, not a separate fast path (see [CLAUDE.md](CLAUDE.md) decision 8
+shorthand, not a separate fast path (see [docs/DECISIONS.md](docs/DECISIONS.md) decision 8
 for why decode always fully builds the value today).
 
 ### Error handling
@@ -152,7 +152,7 @@ exposes `getErrors(): array` (the same list).
 
 Aims for full [draft 2020-12](https://json-schema.org/draft/2020-12)
 keyword coverage for a **self-contained** schema document. See
-[CLAUDE.md](CLAUDE.md) decisions 6 and 15 for the full detail and every
+[docs/DECISIONS.md](docs/DECISIONS.md) decisions 6 and 15 for the full detail and every
 caveat, but in short:
 
 **Supported**: `type` (incl. union arrays), `enum`, `const`, `required`,
@@ -163,7 +163,7 @@ form), `propertyNames`, `dependentRequired`, `dependentSchemas`,
 `contains`/`minContains`/`maxContains`, `unevaluatedItems` (same caveat as
 above), `minItems`/`maxItems`/`uniqueItems`, `minLength`/`maxLength`,
 `pattern` (via PHP's own bundled PCRE2 -- ECMA-262 vs. PCRE dialect
-differences are rare in practice, see CLAUDE.md), `format` (pragmatic
+differences are rare in practice, see docs/DECISIONS.md), `format` (pragmatic
 checkers for `date-time`/`date`/`time`/`duration`, `email`, `hostname`,
 `ipv4`/`ipv6`, `uri`, `uuid`, `json-pointer`, `regex`, ...; an unrecognized
 format name is annotation-only, per spec default), `minimum`/`maximum`/
@@ -175,7 +175,7 @@ absolute `http(s)://` URLs, AND **relative references resolved against a
 document's own `"$id"`**, e.g. `"../plugin-foo/options.schema.json"` --
 fetched via `ext/curl`, active by default, cached for 5 minutes (APCu
 when available, an in-process fallback otherwise); see
-[CLAUDE.md](CLAUDE.md) decisions 16/18 for the SSRF/caching trade-offs
+[docs/DECISIONS.md](docs/DECISIONS.md) decisions 16/18 for the SSRF/caching trade-offs
 and the relative-`$ref` implementation -- validated end-to-end against a
 real, live, third-party schema), and the boolean-schema shorthand
 (`true`/`false` as a whole schema).
@@ -229,7 +229,7 @@ resolves against the whole tree's root when `configure` is the one
 generated for all of `php-src` at once. See
 [php-wasm-compiler](https://github.com/php-kirigami/php-wasm-compiler)'s
 `compile/php/Dockerfile` for a working example, and this repo's
-[CLAUDE.md](CLAUDE.md) (decision 20) for the full diagnosis.
+[docs/DECISIONS.md](docs/DECISIONS.md) (decision 20) for the full diagnosis.
 
 ---
 

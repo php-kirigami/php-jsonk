@@ -1,8 +1,8 @@
 /* simdjson-based decode. This is the one C++ translation unit in the
- * extension (see CLAUDE.md for why): it includes both php.h and
+ * extension (see docs/DECISIONS.md for why): it includes both php.h and
  * simdjson.h directly and does the whole DOM-walk-to-zval conversion here,
  * rather than exposing a generic C accessor API over simdjson's DOM types
- * across an extern "C" boundary (rejected -- see CLAUDE.md's "simdjson
+ * across an extern "C" boundary (rejected -- see docs/DECISIONS.md's "simdjson
  * bridge" decision for the reasoning). jsonk_decode_impl() is the only
  * symbol this file exposes to the rest of the (C) extension. */
 

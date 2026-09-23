@@ -10,12 +10,12 @@ extern "C" {
 /* External "$ref" resolution (an http(s) URL, as opposed to a
  * same-document "#/..." fragment) via PHP's own ext/curl, called through
  * userland functions (curl_init/curl_setopt/curl_exec/curl_getinfo) --
- * not by linking libcurl directly. See CLAUDE.md for why: it reuses
+ * not by linking libcurl directly. See docs/DECISIONS.md for why: it reuses
  * whatever curl configuration (proxy, CA bundle, etc.) the surrounding
  * PHP install already has, and needs zero new build-time dependency.
  *
  * Active by default when a "$ref" turns out to be an external URL (no
- * opt-in flag -- a deliberate choice, see CLAUDE.md's SSRF discussion).
+ * opt-in flag -- a deliberate choice, see docs/DECISIONS.md's SSRF discussion).
  * ext/curl itself is only an OPTIONAL module dependency (unlike the hard
  * "json"/"pcre" ones): most of jsonk works fine without it, an external
  * "$ref" just fails with a clear error if it's absent.
@@ -25,7 +25,7 @@ extern "C" {
  * checks the scheme before calling this). Cached (TTL-based, see
  * JSONK_FETCH_CACHE_TTL in jsonk_fetch.c) so the same schema compiled
  * repeatedly doesn't refetch every time -- no compiled-schema cache
- * exists yet (see CLAUDE.md "Not done yet"), so this is the one layer of
+ * exists yet (see docs/TODO.md), so this is the one layer of
  * caching external "$ref" currently gets. Prefers APCu when it's loaded
  * AND active (apcu_enabled()), since it's real shared memory with its own
  * TTL handling and is safe under a threaded/ZTS SAPI; falls back to
@@ -51,7 +51,7 @@ bool jsonk_apcu_available(void);
  * available -- see jsonk_fetch_url()) -- called from
  * PHP_MINIT/PHP_MSHUTDOWN in jsonk.c, NOT per-request (RINIT/RSHUTDOWN):
  * the cache is deliberately meant to survive across requests in a
- * persistent worker (traditional non-ZTS PHP-FPM/CLI). See CLAUDE.md for
+ * persistent worker (traditional non-ZTS PHP-FPM/CLI). See docs/DECISIONS.md for
  * the ZTS caveat -- this cache has no locking and assumes a non-threaded
  * SAPI (APCu itself has none of these caveats, which is why it's
  * preferred whenever it's actually usable). */

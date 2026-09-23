@@ -230,7 +230,7 @@ static bool compile_schema_array(yyjson_val *arr, jsonk_compile_ctx *ctx, jsonk_
  * external URL is already globally unique on its own, but gets the same
  * treatment for simplicity (harmless: at worst it means the same external
  * URL referenced from two different documents is fetched from cache and
- * compiled twice instead of once -- see CLAUDE.md). Truncates a
+ * compiled twice instead of once -- see docs/DECISIONS.md). Truncates a
  * pathologically long "$ref" rather than overflow `buf`; a collision from
  * that is only possible between two such long refs differing solely in
  * their truncated tail, an unrealistic edge case. */
@@ -329,7 +329,7 @@ static zend_string *resolve_relative_uri(const char *base, size_t base_len, cons
  * an absolute http(s) URL (optionally with its own fragment), or now a
  * RELATIVE reference (e.g. "../plugin-foo/options.json") resolved against
  * `ctx->current_base_uri` -- fetched via jsonk_fetch_url() -- active by
- * default, no opt-in flag (see CLAUDE.md's SSRF discussion). See
+ * default, no opt-in flag (see docs/DECISIONS.md's SSRF discussion). See
  * jsonk_schema.h's struct doc comment for why sibling keywords alongside
  * "$ref" are ignored (the returned node IS the target directly, not a
  * wrapper).
@@ -1152,7 +1152,7 @@ static void merge_evaluated(HashTable *dest, HashTable *src)
  * what it would evaluate, WITHOUT the result affecting the caller's own
  * violation list (used by anyOf/oneOf/if to probe a branch) unless
  * `record_violations` is true (used by allOf, whose failing branches
- * SHOULD surface their real violations directly -- see CLAUDE.md). On a
+ * SHOULD surface their real violations directly -- see docs/DECISIONS.md). On a
  * match, and if `merge_props`/`merge_items` are non-NULL, merges what the
  * branch evaluated into them (annotations from a non-matching branch are
  * discarded, per spec). Returns whether `schema` matched. */

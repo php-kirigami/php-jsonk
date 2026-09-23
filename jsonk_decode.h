@@ -9,7 +9,7 @@ extern "C" {
 
 /* Parses `json`/`json_len` via simdjson's DOM API and builds the resulting
  * PHP value into `return_value`. Schema validation is NOT done here -- see
- * CLAUDE.md "Decode/encode + schema: two passes, not fused (v1)": the
+ * docs/DECISIONS.md "Decode/encode + schema: two passes, not fused (v1)": the
  * caller (jsonk.c) runs jsonk_schema_validate_zval() on the result
  * afterward when a $schema was given, reusing the same validator the
  * encode path uses instead of a second, DOM-walking schema engine.
