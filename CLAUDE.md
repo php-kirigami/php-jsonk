@@ -955,6 +955,25 @@ below before trusting any of it.
       `php-wasm-compiler`'s own `patches/simdjson/` instead — see that
       repo's CLAUDE.md for the full writeup. Version bumped to `0.1.2`.
 
+22. **`enum`/`const`/`uniqueItems` compare objects by value (0.1.5,
+    2026-09-23).** Found while switching php-prepros' `SCHEMA` class to
+    jsonk: `{"const":{"x":1}}` rejected `{"x":1}`. Two causes:
+    `jsonk_values_equal()` had no `IS_OBJECT` case (so two stdClass values
+    were never equal, which also broke `uniqueItems` duplicate detection
+    for objects), and `yyjson_val_to_zval()` materialized the schema's
+    object literals as PHP arrays while the validated value is a stdClass
+    by default. Fix: literals become stdClass (property names always
+    string keys), objects compare by property table, and an object vs an
+    associative array compare as maps with string/integer key fallback
+    (`jsonk_table_find()`), since `JSON_OBJECT_AS_ARRAY` decoding and
+    `jsonk_encode()` of a PHP array produce arrays. A non-empty list array
+    never equals an object, so `[1,2]` doesn't match `{"0":1,"1":2}`; the
+    cost is that an assoc-decoded object keyed exactly `"0"`…`"n"` (a PHP
+    list) doesn't match its object literal either. Verified natively
+    against PHP 8.5.4 (headers and CLI extracted from Ubuntu's
+    `php8.5-dev`/`php8.5-cli` .debs into /tmp, gcc 15 likewise, no
+    install), plus php-prepros' SCHEMA differential test.
+
 ## Status (2026-09-16)
 
 **✅ Builds, loads, and passes a real functional test suite (2026-09-16,

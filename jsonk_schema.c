@@ -131,7 +131,9 @@ static bool compile_type(yyjson_val *type_val, uint32_t *out_mask)
 
 /* Materializes an arbitrary yyjson literal (used for "enum"/"const") into a
  * zval tree. Independent of the compiled schema tree afterward -- copies
- * everything, no dependency on the source yyjson_doc surviving. */
+ * everything, no dependency on the source yyjson_doc surviving. JSON objects
+ * become stdClass, like jsonk_decode()'s default, so an empty {} stays
+ * distinguishable from []. */
 static void yyjson_val_to_zval(yyjson_val *v, zval *out)
 {
 	switch (yyjson_get_type(v)) {
@@ -175,13 +177,16 @@ static void yyjson_val_to_zval(yyjson_val *v, zval *out)
 		case YYJSON_TYPE_OBJ: {
 			yyjson_obj_iter iter;
 			yyjson_val *key, *val;
-			array_init(out);
+			HashTable *props;
+			object_init(out);
+			props = Z_OBJPROP_P(out);
 			yyjson_obj_iter_init(v, &iter);
 			while ((key = yyjson_obj_iter_next(&iter))) {
 				zval val_zv;
 				val = yyjson_obj_iter_get_val(key);
 				yyjson_val_to_zval(val, &val_zv);
-				add_assoc_zval_ex(out, yyjson_get_str(key), yyjson_get_len(key), &val_zv);
+				/* Property names stay string keys, even numeric ones. */
+				zend_hash_str_update(props, yyjson_get_str(key), yyjson_get_len(key), &val_zv);
 			}
 			break;
 		}
@@ -1019,6 +1024,56 @@ static const char *current_path(smart_str *path)
 	return ZSTR_VAL(path->s);
 }
 
+/* Looks up a key taken from another table. An object's property table keeps
+ * numeric names as strings ("0") while an array stores them as integers, so
+ * each form falls back to the other. */
+static zval *jsonk_table_find(HashTable *ht, zend_string *key, zend_ulong idx)
+{
+	zval *found;
+
+	if (key) {
+		found = zend_hash_find_ind(ht, key);
+		return found ? found : zend_symtable_find(ht, key);
+	}
+	found = zend_hash_index_find(ht, idx);
+	if (!found) {
+		char buf[MAX_LENGTH_OF_LONG + 1];
+		char *end = buf + sizeof(buf) - 1;
+		char *start = zend_print_ulong_to_buf(end, idx);
+		found = zend_hash_str_find_ind(ht, start, end - start);
+	}
+	return found;
+}
+
+/* Same size and every key of `ha` maps to an equal value in `hb`. The _IND
+ * iteration looks through object property tables' INDIRECT slots. */
+static bool jsonk_tables_equal(HashTable *ha, HashTable *hb)
+{
+	zend_string *key;
+	zend_ulong idx;
+	zval *va;
+
+	if (zend_hash_num_elements(ha) != zend_hash_num_elements(hb)) {
+		return false;
+	}
+
+	ZEND_HASH_FOREACH_KEY_VAL_IND(ha, idx, key, va) {
+		zval *vb = jsonk_table_find(hb, key, idx);
+		if (!vb || !jsonk_values_equal(va, vb)) {
+			return false;
+		}
+	} ZEND_HASH_FOREACH_END();
+	return true;
+}
+
+/* A PHP array standing for a JSON object (JSON_OBJECT_AS_ARRAY decoding, or
+ * an associative array given to jsonk_encode()): anything but a non-empty
+ * list. An empty array is ambiguous and counts as both. */
+static bool jsonk_array_is_object_like(HashTable *ht)
+{
+	return zend_hash_num_elements(ht) == 0 || !zend_array_is_list(ht);
+}
+
 bool jsonk_values_equal(zval *a, zval *b)
 {
 	if ((Z_TYPE_P(a) == IS_LONG || Z_TYPE_P(a) == IS_DOUBLE) &&
@@ -1028,6 +1083,13 @@ bool jsonk_values_equal(zval *a, zval *b)
 		double x = (Z_TYPE_P(a) == IS_LONG) ? (double) Z_LVAL_P(a) : Z_DVAL_P(a);
 		double y = (Z_TYPE_P(b) == IS_LONG) ? (double) Z_LVAL_P(b) : Z_DVAL_P(b);
 		return x == y;
+	}
+
+	if (Z_TYPE_P(a) == IS_OBJECT && Z_TYPE_P(b) == IS_ARRAY) {
+		return jsonk_array_is_object_like(Z_ARRVAL_P(b)) && jsonk_tables_equal(Z_OBJPROP_P(a), Z_ARRVAL_P(b));
+	}
+	if (Z_TYPE_P(a) == IS_ARRAY && Z_TYPE_P(b) == IS_OBJECT) {
+		return jsonk_array_is_object_like(Z_ARRVAL_P(a)) && jsonk_tables_equal(Z_ARRVAL_P(a), Z_OBJPROP_P(b));
 	}
 
 	if (Z_TYPE_P(a) != Z_TYPE_P(b)) {
@@ -1041,24 +1103,12 @@ bool jsonk_values_equal(zval *a, zval *b)
 			return true;
 		case IS_STRING:
 			return zend_string_equals(Z_STR_P(a), Z_STR_P(b));
-		case IS_ARRAY: {
-			HashTable *ha = Z_ARRVAL_P(a), *hb = Z_ARRVAL_P(b);
-			zend_string *key;
-			zend_ulong idx;
-			zval *va;
-
-			if (zend_hash_num_elements(ha) != zend_hash_num_elements(hb)) {
-				return false;
-			}
-
-			ZEND_HASH_FOREACH_KEY_VAL(ha, idx, key, va) {
-				zval *vb = key ? zend_hash_find(hb, key) : zend_hash_index_find(hb, idx);
-				if (!vb || !jsonk_values_equal(va, vb)) {
-					return false;
-				}
-			} ZEND_HASH_FOREACH_END();
-			return true;
-		}
+		case IS_ARRAY:
+			return jsonk_tables_equal(Z_ARRVAL_P(a), Z_ARRVAL_P(b));
+		case IS_OBJECT:
+			/* A JSON object decodes to stdClass: compare its properties
+			 * (without this, const/enum/uniqueItems never matched objects). */
+			return jsonk_tables_equal(Z_OBJPROP_P(a), Z_OBJPROP_P(b));
 		default:
 			return false;
 	}

@@ -60,6 +60,7 @@ Part of the **Kirigami** project ecosystem.
     - [`jsonk_validate()`](#jsonk_validate)
     - [Error handling](#error-handling)
   - [JSON Schema support](#json-schema-support)
+    - [Value equality](#value-equality)
   - [Building from source](#building-from-source)
   - [Requirements](#requirements)
   - [Related](#related)
@@ -70,11 +71,15 @@ Part of the **Kirigami** project ecosystem.
 
 ## Status
 
-**Nothing has been compiled or run yet.** Every line was written this
-session against verified real PHP/simdjson/yyjson API signatures, but no
-PHP development environment was available to actually build and test it.
-See [CLAUDE.md](CLAUDE.md)'s "Status" section for exactly what's done,
-what's unverified, and what to do first.
+Builds natively and under Emscripten, and ships statically in
+[`@kirigami/php-wasm`](https://github.com/php-kirigami/kirigami/tree/main/packages/php-wasm),
+where php-prepros' `SCHEMA` class validates through it. There is no
+`.phpt` test suite yet. See [CLAUDE.md](CLAUDE.md)'s "Status" section and
+decisions for what has been verified and how.
+
+**0.1.5**: `enum`, `const` and `uniqueItems` now compare JSON objects by
+value. Before, an object never matched, not even an identical one. See
+[Value equality](#value-equality).
 
 ---
 
@@ -174,6 +179,17 @@ when available, an in-process fallback otherwise); see
 and the relative-`$ref` implementation -- validated end-to-end against a
 real, live, third-party schema), and the boolean-schema shorthand
 (`true`/`false` as a whole schema).
+
+### Value equality
+
+`enum`, `const` and `uniqueItems` follow the spec's equality: numbers
+compare by value (`1` equals `1.0`), arrays item by item, objects by their
+set of members regardless of order. Object members are compared whether the
+value is a `stdClass` (default decoding) or an associative array
+(`JSON_OBJECT_AS_ARRAY`, or an array given to `jsonk_encode()`). One PHP
+limit applies to associative arrays: an empty array matches both `[]` and
+`{}`, and an object whose keys are exactly `"0"`…`"n"` decodes to a list,
+which is compared as an array.
 
 **Not supported, by design**: `$dynamicRef`/`$dynamicAnchor`/
 `$recursiveRef` (meta-schema-authoring features); `$ref` combined with
